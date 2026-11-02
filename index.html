@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda React</title>
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="estilos.css">
+    <!-- React y ReactDOM scripts (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        var urlApi = 'http://www.raydelto.org/agenda.php';
+
+        // 1. Componente para Agregar Contactos
+        function FormularioContacto(props) {
+            function handleSubmit(e) {
+                e.preventDefault();
+                var nombre = e.target.nombre.value;
+                var apellido = e.target.apellido.value;
+                var telefono = e.target.telefono.value;
+
+                var nuevo = { nombre: nombre, apellido: apellido, telefono: telefono };
+
+                fetch(urlApi, {
+                    method: 'POST',
+                    body: JSON.stringify(nuevo)
+                })
+                .then(function() {
+                    e.target.reset();
+                    props.onContactoAgregado();
+                    alert('¡Contacto guardado exitosamente!');
+                })
+                .catch(function(error) {
+                    console.error('Error al guardar:', error);
+                });
+            }
+
+            return (
+                <div className="card">
+                    <h2>Nuevo Contacto (React)</h2>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group">
+                            <label>Nombre:</label>
+                            <input type="text" name="nombre" required />
+                        </div>
+                        <div className="form-group">
+                            <label>Apellido:</label>
+                            <input type="text" name="apellido" required />
+                        </div>
+                        <div className="form-group">
+                            <label>Teléfono:</label>
+                            <input type="text" name="telefono" required />
+                        </div>
+                        <button type="submit" className="btn-submit">Guardar en la Agenda</button>
+                    </form>
+                </div>
+            );
+        }
+
+        // 2. Componente para Mostrar el Listado de Contactos
+        function ListadoContactos(props) {
+            return (
+                <div className="card list-card">
+                    <h2>Listado de Contactos</h2>
+                    <button onClick={props.onActualizar} className="btn-refresh">Actualizar Listado</button>
+                    <div className="table-container">
+                        <table className="contact-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Apellido</th>
+                                    <th>Teléfono</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {props.contactos.length === 0 ? (
+                                    <tr><td colSpan="3" style={{textAlign: 'center'}}>No hay contactos registrados</td></tr>
+                                ) : (
+                                    props.contactos.map(function(c, index) {
+                                        return (
+                                            <tr key={index}>
+                                                <td>{c.nombre}</td>
+                                                <td>{c.apellido}</td>
+                                                <td>{c.telefono}</td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 3. Componente Padre que contiene a ambos
+        function AgendaApp() {
+            var contactosState = React.useState([]);
+            var contactos = contactosState[0];
+            var setContactos = contactosState[1];
+
+            function obtenerContactos() {
+                fetch(urlApi)
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) { setContactos(data); })
+                    .catch(function(err) { console.error(err); });
+            }
+
+            React.useEffect(function() {
+                obtenerContactos();
+            }, []);
+
+            return (
+                <div className="main-container">
+                    <FormularioContacto onContactoAgregado={obtenerContactos} />
+                    <ListadoContactos contactos={contactos} onActualizar={obtenerContactos} />
+                </div>
+            );
+        }
+
+        // Renderizar la aplicación en el DOM
+        ReactDOM.render(<AgendaApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
